@@ -11,7 +11,7 @@ A partial implementation of the [Raft](http://raftconsensus.github.io/) algorith
 Settings
 -------
 Settings read from `application.conf` at the root of the classpath, or as JVM run parameters.
-- http.port - The port to look for akka-cluster instances on.
+- akka.port - The port to look for akka-cluster instances on.
 - inflatable.local - `true` to run locally and bypass AWS discovery.
 - aws.credentials - `access-key` & `secret-key` to pass to the AWS client for EC2 instance discovery
 
