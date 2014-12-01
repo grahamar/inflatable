@@ -1,6 +1,6 @@
 name := "inflatable"
 
-organization := "com.teambytes"
+organization := "net.redhogs"
 
 scalaVersion := "2.11.4"
 
