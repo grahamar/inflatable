@@ -1,0 +1,72 @@
+package com.teambytes.inflatable
+
+import com.amazonaws.auth._
+import com.amazonaws.services.autoscaling.AmazonAutoScalingClient
+import com.amazonaws.services.ec2.AmazonEC2Client
+import com.typesafe.config.{ConfigValueFactory, ConfigFactory}
+import org.slf4j.LoggerFactory
+import scala.collection.JavaConversions._
+
+private[inflatable] object AkkaConfig {
+
+  private lazy val logger = LoggerFactory.getLogger(getClass)
+
+  private val defaults = ConfigFactory.load()
+  private val local = defaults.getBoolean("inflatable.local")
+  private val defaultPort = defaults.getString("http.port")
+
+  private lazy val ec2 = {
+    val credentials =  createAwsCredentialsProvider(
+      defaults.getString("aws.credentials.access-key"),
+      defaults.getString("aws.credentials.secret-key")
+    )
+    val scalingClient = new AmazonAutoScalingClient(credentials)
+    val ec2Client = new AmazonEC2Client(credentials)
+    new EC2(scalingClient, ec2Client)
+  }
+
+  val (host, siblings, port) =
+    if (local) {
+      logger.info("Running with local configuration")
+      ("localhost", "localhost" :: Nil, defaultPort)
+    } else {
+      logger.info("Using EC2 autoscaling configuration")
+      (ec2.currentIp, ec2.siblingIps, defaultPort)
+    }
+
+  val seeds = siblings.map(ip => s"akka.tcp://inflatable-raft@$ip:$defaultPort")
+
+  private val overrideConfig =
+    ConfigFactory.empty()
+      .withValue("akka.remote.netty.tcp.hostname", ConfigValueFactory.fromAnyRef(host))
+      .withValue("akka.remote.netty.tcp.port", ConfigValueFactory.fromAnyRef(port))
+      .withValue("akka.cluster.seed-nodes", ConfigValueFactory.fromIterable(seeds))
+
+  val config = overrideConfig.withFallback(defaults)
+
+  /**
+   * Create a credentials provider, based on configured access and secret keys
+   *
+   * If the keys are both set to "from-classpath", the provider will
+   * look for a properties file in the classpath that contains properties
+   * named access-key and secret-key.
+   *
+   * @param accessKey the configured accessKey, or the 'from-classpath' string
+   * @param secretKey the configured secretKey, or the 'from-classpath' string
+   * @return an AWSCredentialsProvider wrapping the configured keys
+   */
+  private[this] def createAwsCredentialsProvider(accessKey: String, secretKey: String): AWSCredentialsProvider = {
+
+    def isClasspath(key: String) = "from-classpath".equals(key)
+
+    if (isClasspath(accessKey) && isClasspath(secretKey)) {
+      new ClasspathPropertiesFileCredentialsProvider()
+    } else if (isClasspath(accessKey) || isClasspath(secretKey)) {
+      throw new RuntimeException("Both AWS credentials 'aws.credentials.access-key' and 'aws.credentials.secret-key' must be 'from-classpath' or neither.")
+    } else new AWSCredentialsProvider {
+      override def getCredentials: AWSCredentials = new BasicAWSCredentials(accessKey, secretKey)
+      override def refresh(): Unit = {}
+    }
+  }
+
+}
