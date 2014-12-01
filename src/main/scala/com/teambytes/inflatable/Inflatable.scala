@@ -1,19 +1,25 @@
 package com.teambytes.inflatable
 
-import akka.actor.{Props, ActorSystem}
+import akka.actor.{ActorSystem, Props}
 import com.teambytes.inflatable.raft.cluster.ClusterRaftActor
+import com.typesafe.config.Config
 import org.slf4j.LoggerFactory
 
 object Inflatable {
 
-  def startLeaderElection(handler: InflatableLeader): Unit = new Inflatable(handler)
+  def startLeaderElection(handler: InflatableLeader): Unit = new Inflatable(handler, AkkaConfig.apply())
+
+  def startLeaderElection(handler: InflatableLeader, defaults: Config): Unit = new Inflatable(handler, AkkaConfig(defaults))
 
 }
 
-class Inflatable(handler: InflatableLeader) {
+class Inflatable(handler: InflatableLeader, akkaConfig: AkkaConfig) {
 
   private val logger = LoggerFactory.getLogger(classOf[Inflatable])
-  private val clusterSystem = ActorSystem("inflatable-raft-cluster", AkkaConfig.config)
+
+  logger.info("Inflating raft system...")
+
+  private val clusterSystem = ActorSystem("inflatable-raft-cluster", akkaConfig.config)
 
   private val inflatableActor = clusterSystem.actorOf(Props(classOf[InflatableActor], handler), name = "inflatable-raft-actor")
 
@@ -21,11 +27,11 @@ class Inflatable(handler: InflatableLeader) {
     Props(
       classOf[ClusterRaftActor],
       inflatableActor,
-      AkkaConfig.seeds.size
+      akkaConfig.seeds.size
     ),
     name = "inflatable-raft-cluster-actor"
   )
 
-  logger.info("Started inflatable raft system.")
+  logger.info("Inflatable raft system fully inflated!")
 
 }
