@@ -10,6 +10,8 @@ organization := "net.redhogs.inflatable"
 
 scalaVersion := "2.11.4"
 
+crossScalaVersions := Seq("2.11.4", "2.10.4")
+
 libraryDependencies ++= Seq(
   "org.slf4j" % "slf4j-api" % "1.7.7",
   "com.typesafe.akka" %% "akka-actor" % "2.3.7",
