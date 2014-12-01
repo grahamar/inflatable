@@ -1,4 +1,8 @@
-import sbtrelease.ReleasePlugin.ReleaseKeys._
+import sbtrelease._
+
+import ReleaseStateTransformations._
+
+releaseSettings
 
 name := "inflatable"
 
@@ -33,27 +37,43 @@ publishTo <<= version { (v: String) =>
     Some("releases"  at nexus + "service/local/staging/deploy/maven2")
 }
 
-pomExtra := (
-  <scm>
-    <url>git@github.com:grahamar/inflatable.git</url>
-    <connection>scm:git:git@github.com:grahamar/inflatable.git</connection>
-  </scm>
-    <developers>
-      <developer>
-        <id>grhodes</id>
-        <name>Graham Rhodes</name>
-        <url>https://github.com/grahamar</url>
-      </developer>
-      <developer>
-        <id>ktoso</id>
-        <name>Konrad Malawski</name>
-        <url>https://github.com/ktoso</url>
-      </developer>
-      <developer>
-        <id>chrisloy</id>
-        <name>Chris Loy</name>
-        <url>https://github.com/chrisloy</url>
-      </developer>
-    </developers>)
+pomExtra := <scm>
+  <url>git@github.com:grahamar/inflatable.git</url>
+  <connection>scm:git:git@github.com:grahamar/inflatable.git</connection>
+</scm>
+  <developers>
+    <developer>
+      <id>grhodes</id>
+      <name>Graham Rhodes</name>
+      <url>https://github.com/grahamar</url>
+    </developer>
+    <developer>
+      <id>ktoso</id>
+      <name>Konrad Malawski</name>
+      <url>https://github.com/ktoso</url>
+    </developer>
+    <developer>
+      <id>chrisloy</id>
+      <name>Chris Loy</name>
+      <url>https://github.com/chrisloy</url>
+    </developer>
+  </developers>
 
-releaseSettings
+lazy val publishSignedAction = { st: State =>
+  val extracted = Project.extract(st)
+  val ref = extracted.get(thisProjectRef)
+  extracted.runAggregated(com.typesafe.sbt.pgp.PgpKeys.publishSigned in Global in ref, st)
+}
+
+sbtrelease.ReleasePlugin.ReleaseKeys.releaseProcess := Seq[ReleaseStep](
+  checkSnapshotDependencies,
+  inquireVersions,
+  runTest,
+  setReleaseVersion,
+  commitReleaseVersion,
+  tagRelease,
+  publishArtifacts.copy(action = publishSignedAction),
+  setNextVersion,
+  commitNextVersion,
+  pushChanges
+)
