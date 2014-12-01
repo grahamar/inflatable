@@ -19,7 +19,7 @@ class Inflatable(handler: InflatableLeader, akkaConfig: AkkaConfig) {
 
   logger.info("Inflating raft system...")
 
-  private val clusterSystem = ActorSystem("inflatable-raft-cluster", akkaConfig.config)
+  private val clusterSystem = ActorSystem("inflatable-raft", akkaConfig.config)
 
   private val inflatableActor = clusterSystem.actorOf(Props(classOf[InflatableActor], handler), name = "inflatable-raft-actor")
 
