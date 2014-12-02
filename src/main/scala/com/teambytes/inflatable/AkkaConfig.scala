@@ -44,7 +44,6 @@ private[inflatable] class AkkaConfig(defaults: Config) {
   private lazy val logger = LoggerFactory.getLogger(getClass)
 
   private val local = Try(defaults.getBoolean("inflatable.local")).getOrElse(false)
-  private val localHost = Try(defaults.getString("inflatable.local-host")).toOption
   private val defaultPort = defaults.getString("akka.port")
 
   private lazy val ec2 = {
@@ -64,7 +63,7 @@ private[inflatable] class AkkaConfig(defaults: Config) {
       ("localhost", "localhost" :: Nil, defaultPort)
     } else {
       logger.info("Using EC2 autoscaling configuration")
-      (localHost.getOrElse(ec2.currentIp),
+      ("127.0.0.1",
        ec2.siblingIps,
        defaultPort)
     }
