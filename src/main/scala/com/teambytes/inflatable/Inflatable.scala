@@ -7,17 +7,19 @@ import com.teambytes.inflatable.raft.protocol._
 import com.typesafe.config.Config
 import org.slf4j.LoggerFactory
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 object Inflatable {
 
-  def startLeaderElection(handler: InflatableLeader): Unit = new Inflatable(handler, AkkaConfig.apply())
+  def startLeaderElection(handler: InflatableLeader)(implicit ec: ExecutionContext): Unit =
+    new Inflatable(handler, AkkaConfig.apply())(ec)
 
-  def startLeaderElection(handler: InflatableLeader, defaults: Config): Unit = new Inflatable(handler, AkkaConfig(defaults))
+  def startLeaderElection(handler: InflatableLeader, defaults: Config)(implicit ec: ExecutionContext): Unit =
+    new Inflatable(handler, AkkaConfig(defaults))(ec)
 
 }
 
-class Inflatable(handler: InflatableLeader, akkaConfig: AkkaConfig) {
+class Inflatable(handler: InflatableLeader, akkaConfig: AkkaConfig)(implicit ec: ExecutionContext) {
 
   import scala.concurrent.duration._
 
@@ -43,7 +45,7 @@ class Inflatable(handler: InflatableLeader, akkaConfig: AkkaConfig) {
   private val memberFutures = Future.sequence(akkaConfig.seeds.map { actorSeed =>
     clusterSystem.actorSelection(s"$actorSeed/user/inflatable-raft-cluster-actor")
   }.map(_.resolveOne(20.seconds)))
-  
+
   memberFutures.map { members =>
     logger.info("Inflatable raft system fully inflated!")
 
