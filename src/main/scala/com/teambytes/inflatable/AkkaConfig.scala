@@ -74,6 +74,8 @@ private[inflatable] class AkkaConfig(defaults: Config) {
     add
   }
 
+  val seedNumberMap = siblings.zipWithIndex.toMap
+
   private val overrideConfig =
     ConfigFactory.empty()
       .withValue("akka.remote.netty.tcp.hostname", ConfigValueFactory.fromAnyRef(host))

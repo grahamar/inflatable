@@ -29,7 +29,12 @@ class Inflatable(handler: InflatableLeader, akkaConfig: AkkaConfig)(implicit ec:
 
   private val clusterSystem = ActorSystem("inflatable-raft", akkaConfig.config)
 
-  private val inflatableActor = clusterSystem.actorOf(Props(classOf[InflatableActor], handler), name = "inflatable-raft-actor")
+  private val inflatableActor = clusterSystem.actorOf(
+    Props(
+      classOf[InflatableActor],
+      handler
+    ),
+    name = s"raft-member-${akkaConfig.seedNumberMap(akkaConfig.host)}")
 
   logger.info(s"Waiting in Init state with ${akkaConfig.seeds.size} members.")
 

@@ -6,7 +6,7 @@ releaseSettings
 
 name := "inflatable"
 
-organization := "net.redhogs.inflatable"
+organization := "com.teambytes"
 
 scalaVersion := "2.11.4"
 
