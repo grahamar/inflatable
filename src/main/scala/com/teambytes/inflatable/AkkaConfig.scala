@@ -63,7 +63,9 @@ private[inflatable] class AkkaConfig(defaults: Config) {
       ("localhost", "localhost" :: Nil, defaultPort)
     } else {
       logger.info("Using EC2 autoscaling configuration")
-      (ec2.currentIp, ec2.siblingIps, defaultPort)
+      ("localhost",// Use localhost instead of ec2.currentIp as docker ip bind fails
+       ec2.siblingIps,
+       defaultPort)
     }
 
   val seeds = siblings.map { ip =>
