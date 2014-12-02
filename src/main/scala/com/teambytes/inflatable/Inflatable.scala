@@ -2,12 +2,11 @@ package com.teambytes.inflatable
 
 import akka.actor.{ActorSystem, Props}
 import com.teambytes.inflatable.raft.ClusterConfiguration
-import com.teambytes.inflatable.raft.cluster.ClusterRaftActor
 import com.teambytes.inflatable.raft.protocol._
 import com.typesafe.config.Config
 import org.slf4j.LoggerFactory
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.ExecutionContext
 
 object Inflatable {
 
@@ -21,42 +20,26 @@ object Inflatable {
 
 class Inflatable(handler: InflatableLeader, akkaConfig: AkkaConfig)(implicit ec: ExecutionContext) {
 
-  import scala.concurrent.duration._
-
   private val logger = LoggerFactory.getLogger(classOf[Inflatable])
 
   logger.info("Inflating raft system...")
+  logger.info(s"Seeds: ${akkaConfig.seeds}")
 
   private val clusterSystem = ActorSystem("inflatable-raft", akkaConfig.config)
 
-  private val inflatableActor = clusterSystem.actorOf(
-    Props(
-      classOf[InflatableActor],
-      handler
-    ),
-    name = s"raft-member-${akkaConfig.seedNumberMap(akkaConfig.host)}")
-
-  logger.info(s"Waiting in Init state with ${akkaConfig.seeds.size} members.")
-
-  private val inflatableCluster = clusterSystem.actorOf(
-    Props(
-      classOf[ClusterRaftActor],
-      inflatableActor,
-      akkaConfig.seeds.size
-    ),
-    name = "inflatable-raft-cluster-actor"
-  )
-
-  private val memberFutures = Future.sequence(akkaConfig.seeds.map { actorSeed =>
-    clusterSystem.actorSelection(s"$actorSeed/user/inflatable-raft-cluster-actor")
-  }.map(_.resolveOne(20.seconds)))
-
-  memberFutures.map { members =>
-    logger.info("Inflatable raft system fully inflated!")
-
-    val clusterConfiguration = ClusterConfiguration(akkaConfig.singleNodeCluster, members: _*)
-
-    inflatableCluster ! ChangeConfiguration(clusterConfiguration)
+  val members = (0 to akkaConfig.seeds.size + 1).map { i =>
+    clusterSystem.actorOf(
+      Props(
+        classOf[InflatableActor],
+        handler
+      ),
+      name = s"raft-member-$i")
   }
+
+  logger.info("Inflatable raft system fully inflated!")
+
+  val clusterConfiguration = ClusterConfiguration(akkaConfig.singleNodeCluster, members: _*)
+
+  members foreach { _ ! ChangeConfiguration(clusterConfiguration) }
 
 }

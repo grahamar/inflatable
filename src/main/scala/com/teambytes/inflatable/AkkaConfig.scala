@@ -57,7 +57,7 @@ private[inflatable] class AkkaConfig(defaults: Config) {
     new EC2(scalingClient, ec2Client)
   }
 
-  val (host, siblings, port) = {
+  private val (host, siblings, port) = {
     if (local) {
       logger.info("Running with local configuration")
       val localHost = defaults.getString("akka.remote.netty.tcp.hostname")
@@ -81,8 +81,6 @@ private[inflatable] class AkkaConfig(defaults: Config) {
     }
   }
 
-  val seedNumberMap = siblings.zipWithIndex.toMap
-
   private val overrideConfig =
     ConfigFactory.empty()
       .withValue("akka.remote.netty.tcp.hostname", ConfigValueFactory.fromAnyRef(host))
@@ -94,4 +92,5 @@ private[inflatable] class AkkaConfig(defaults: Config) {
   val config = {
     if(local) defaults else overrideConfig.withFallback(defaults)
   }
+
 }
