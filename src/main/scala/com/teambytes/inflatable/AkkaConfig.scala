@@ -5,7 +5,7 @@ import com.amazonaws.services.autoscaling.AmazonAutoScalingClient
 import com.amazonaws.services.ec2.AmazonEC2Client
 import com.typesafe.config.{Config, ConfigValueFactory, ConfigFactory}
 import org.slf4j.LoggerFactory
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 import scala.util.Try
 
 private[inflatable] object AkkaConfig {
@@ -47,7 +47,7 @@ private[inflatable] class AkkaConfig(defaults: Config) {
   private val defaultPort = defaults.getString("akka.port")
 
   private lazy val ec2 = {
-    val credentials =  AkkaConfig.createAwsCredentialsProvider(
+    val credentials = AkkaConfig.createAwsCredentialsProvider(
       defaults.getString("aws.credentials.access-key"),
       defaults.getString("aws.credentials.secret-key")
     )
@@ -57,21 +57,28 @@ private[inflatable] class AkkaConfig(defaults: Config) {
     new EC2(scalingClient, ec2Client)
   }
 
-  val (host, siblings, port) =
+  val (host, siblings, port) = {
     if (local) {
       logger.info("Running with local configuration")
-      ("localhost", "localhost" :: Nil, defaultPort)
+      val localHost = defaults.getString("akka.remote.netty.tcp.hostname")
+      val nodes = defaults.getStringList("akka.cluster.seed-nodes").asScala
+      val localPort = defaults.getString("akka.remote.netty.tcp.port")
+      (localHost, nodes, localPort)
     } else {
       logger.info("Using EC2 autoscaling configuration")
-      (ec2.currentIp,
-       ec2.siblingIps,
-       defaultPort)
+      (ec2.currentIp, ec2.siblingIps, defaultPort)
     }
+  }
 
   val seeds = siblings.map { ip =>
-    val add = s"akka.tcp://inflatable-raft@$ip:$defaultPort"
-    logger.debug(s"Adding seed node: $add")
-    add
+    if(local) {
+      logger.debug(s"Adding seed node: $ip")
+      ip
+    } else {
+      val add = s"akka.tcp://inflatable-raft@$ip:$defaultPort"
+      logger.debug(s"Adding seed node: $add")
+      add
+    }
   }
 
   val seedNumberMap = siblings.zipWithIndex.toMap
@@ -80,9 +87,11 @@ private[inflatable] class AkkaConfig(defaults: Config) {
     ConfigFactory.empty()
       .withValue("akka.remote.netty.tcp.hostname", ConfigValueFactory.fromAnyRef(host))
       .withValue("akka.remote.netty.tcp.port", ConfigValueFactory.fromAnyRef(port))
-      .withValue("akka.cluster.seed-nodes", ConfigValueFactory.fromIterable(seeds))
+      .withValue("akka.cluster.seed-nodes", ConfigValueFactory.fromIterable(seeds.asJava))
 
   val singleNodeCluster = Try(defaults.getBoolean("inflatable.single-node-cluster")).getOrElse(false)
 
-  val config = overrideConfig.withFallback(defaults)
+  val config = {
+    if(local) defaults else overrideConfig.withFallback(defaults)
+  }
 }
