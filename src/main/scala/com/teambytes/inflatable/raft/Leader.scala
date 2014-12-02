@@ -18,7 +18,6 @@ private[raft] trait Leader {
       log.info("Became leader for {}", m.currentTerm)
       initializeLeaderState(m.config.members)
       startHeartbeat(m)
-      onIsLeader()
       stay()
 
     case Event(SendHeartbeat, m: LeaderMeta) =>
@@ -173,8 +172,6 @@ private[raft] trait Leader {
       replicatedLog
     }
   }
-
-  def onIsLeader(): Unit
 
   /**
    * Used for handling special messages, such as ''new Configuration'' or a ''Snapshot entry'' being comitted.
