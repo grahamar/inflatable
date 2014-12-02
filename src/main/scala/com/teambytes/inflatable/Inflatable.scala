@@ -40,7 +40,10 @@ class Inflatable(handler: InflatableLeader, akkaConfig: AkkaConfig) {
     name = "inflatable-raft-cluster-actor"
   )
 
-  private val memberFutures = Future.sequence(akkaConfig.seeds.map(clusterSystem.actorSelection).map(_.resolveOne(20.seconds)))
+  private val memberFutures = Future.sequence(akkaConfig.seeds.map { actorSeed =>
+    clusterSystem.actorSelection(s"$actorSeed/user/inflatable-raft-cluster-actor")
+  }.map(_.resolveOne(20.seconds)))
+  
   memberFutures.map { members =>
     logger.info("Inflatable raft system fully inflated!")
 
