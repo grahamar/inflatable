@@ -16,6 +16,66 @@ Settings read from `application.conf` at the root of the classpath, or as JVM ru
 - inflatable.single-node-cluster - `true` to set leader even if only local node is available
 - aws.credentials - `access-key` & `secret-key` to pass to the AWS client for EC2 instance discovery
 
+Example Usage (Play Application)
+-------
+
+### Global.scala
+
+    import com.teambytes.inflatable.Inflatable
+    
+    object Global extends play.api.GlobalSettings {
+    
+      implicit val ec = play.api.libs.concurrent.Execution.defaultContext
+    
+      override def onStart(app: play.api.Application) = {
+        Inflatable.startLeaderElection(new TestLeaderElectionHandler(), app.configuration.underlying)
+      }
+    
+    }
+    
+### TestLeaderElectionHandler.scala
+
+    import java.util.concurrent.{Executors, ScheduledExecutorService}
+    
+    import com.teambytes.inflatable.{PeriodicTask, SchedulingInflatableLeader}
+    import play.core.NamedThreadFactory
+    
+    class TestLeaderElectionHandler extends SchedulingInflatableLeader {
+    
+      val tasks = Set(new TestPeriodicJob())
+    
+      override def leaderExecutor: ScheduledExecutorService = Executors.newScheduledThreadPool(1, new NamedThreadFactory("test-job"))
+    
+      override def leaderTasks: Iterable[PeriodicTask] = tasks
+    }
+
+### TestPeriodicJob.scala
+
+    import com.teambytes.inflatable.PeriodicTask
+    import play.api.Logger
+    
+    class TestPeriodicJob extends PeriodicTask {
+    
+      import scala.concurrent.duration._
+    
+      override def periodMs: Long = 5.seconds.toMillis
+    
+      override def run(): Unit = {
+        Logger.info(
+          """
+            |
+            |
+            |
+            |
+            |Running test periodic job here and now!!!!!!!
+            |
+            |
+            |
+            |
+          """.stripMargin)
+      }
+    }
+
 Running Locally
 -------
 
