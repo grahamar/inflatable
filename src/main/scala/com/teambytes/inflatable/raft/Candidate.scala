@@ -28,13 +28,15 @@ private[raft] trait Candidate {
         val request = RequestVote(m.currentTerm, m.clusterSelf, replicatedLog.lastTerm, replicatedLog.lastIndex)
 
         if(m.config.singleNodeCluster && m.config.members.size == 1){
-          m.members foreach { _ ! request }
+          log.info("Single node cluster, voting for myself!")
+          self ! VoteCandidate(m.currentTerm)
+          stay() using m.withVoteFor(request.term, self)
         } else {
           m.membersExceptSelf foreach { _ ! request }
-        }
 
-        val includingThisVote = m.incVote
-        stay() using includingThisVote.withVoteFor(m.currentTerm, m.clusterSelf)
+          val includingThisVote = m.incVote
+          stay() using includingThisVote.withVoteFor(m.currentTerm, m.clusterSelf)
+        }
       }
 
     case Event(msg: RequestVote, m: ElectionMeta) if m.canVoteIn(msg.term) =>
