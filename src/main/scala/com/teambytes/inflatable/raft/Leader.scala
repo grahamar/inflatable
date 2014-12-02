@@ -52,9 +52,18 @@ private[raft] trait Leader {
       log.info("Leader (@ {}) got AppendEntries from fresher Leader (@ {}), will step down and the Leader will keep being: {}", m.currentTerm, append.term, sender())
       stepDown(m)
 
-    case Event(append: AppendEntries[Command], m: LeaderMeta) if append.term <= m.currentTerm =>
+    case Event(append: AppendEntries[Command], m: LeaderMeta) if append.term < m.currentTerm =>
       log.warning("Leader (@ {}) got AppendEntries from rogue Leader ({} @ {}); It's not fresher than self. Will send entries, to force it to step down.", m.currentTerm, sender(), append.term)
       sendEntries(sender(), m)
+      stay()
+
+    case Event(append: AppendEntries[Command], m: LeaderMeta) if append.term == m.currentTerm =>
+      log.warning("Leader (@ {}) got AppendEntries from rogue Leader ({} @ {}); It's as fresh as self. Will send entries, to force it to step down.", m.currentTerm, sender(), append.term)
+      if(selfIsGreaterThenSender(self, sender())) {
+        sendEntries(sender(), m)
+      } else {
+        stepDown(m)
+      }
       stay()
     // end of rogue Leader handling
 
@@ -171,6 +180,20 @@ private[raft] trait Leader {
     } else {
       replicatedLog
     }
+  }
+
+  private def selfIsGreaterThenSender(slf: ActorRef, sndr: ActorRef): Boolean = {
+    val selfRaftMemberIndex = slf.path.toString.indexOf("raft-member-") + 12
+    val selfMemberIndex = slf.path.toString.substring(
+      selfRaftMemberIndex,
+      slf.path.toString.indexOf("#", selfRaftMemberIndex)
+    )
+    val senderRaftMemberIndex = sndr.path.toString.indexOf("raft-member-") + 12
+    val senderMemberIndex = sndr.path.toString.substring(
+      senderRaftMemberIndex,
+      sndr.path.toString.indexOf("#", senderRaftMemberIndex)
+    )
+    selfMemberIndex.toInt > senderMemberIndex.toInt
   }
 
   /**
