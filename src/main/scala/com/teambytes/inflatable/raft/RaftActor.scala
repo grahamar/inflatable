@@ -119,10 +119,8 @@ private[inflatable] abstract class RaftActor extends Actor with LoggingFSM[RaftS
 
     if (m.config.members.isEmpty) {
       // cluster is still discovering nodes, keep waiting
-      log.info("still discovering nodes, wait longer before election.")
       goto(Follower) using m
     } else {
-      log.info("Begin election!")
       goto(Candidate) using m.forNewElection forMax nextElectionDeadline().timeLeft
     }
   }
