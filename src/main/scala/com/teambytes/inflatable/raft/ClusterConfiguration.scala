@@ -13,6 +13,8 @@ private[inflatable] sealed trait ClusterConfiguration {
 
   def isTransitioning: Boolean
 
+  def singleNodeCluster: Boolean
+
   def transitionTo(newConfiguration: ClusterConfiguration): ClusterConfiguration
 
   /**
@@ -30,25 +32,25 @@ private[inflatable] sealed trait ClusterConfiguration {
 }
 
 private[inflatable] object ClusterConfiguration {
-  def apply(members: Iterable[ActorRef]): ClusterConfiguration =
-    StableClusterConfiguration(0, members.toSet)
+  def apply(isLocal: Boolean, members: Iterable[ActorRef]): ClusterConfiguration =
+    StableClusterConfiguration(0, members.toSet, isLocal)
 
-  def apply(members: ActorRef*): ClusterConfiguration =
-    StableClusterConfiguration(0, members.toSet)
+  def apply(isLocal: Boolean, members: ActorRef*): ClusterConfiguration =
+    StableClusterConfiguration(0, members.toSet, isLocal)
 }
 
 /**
  * Used for times when the cluster is NOT undergoing membership changes.
  * Use `transitionTo` in order to enter a [[com.teambytes.inflatable.raft.JointConsensusClusterConfiguration]] state.
  */
-private[inflatable] case class StableClusterConfiguration(sequenceNumber: Long, members: Set[ActorRef]) extends ClusterConfiguration {
+private[inflatable] case class StableClusterConfiguration(sequenceNumber: Long, members: Set[ActorRef], singleNodeCluster: Boolean) extends ClusterConfiguration {
   val isTransitioning = false
 
   /**
    * Implementation detail: The resulting configurations `sequenceNumber` will be equal to the current one.
    */
   def transitionTo(newConfiguration: ClusterConfiguration): JointConsensusClusterConfiguration =
-    JointConsensusClusterConfiguration(sequenceNumber, members, newConfiguration.members)
+    JointConsensusClusterConfiguration(sequenceNumber, members, newConfiguration.members, singleNodeCluster)
 
   def isPartOfNewConfiguration(ref: ActorRef) = members contains ref
 
@@ -68,7 +70,7 @@ private[inflatable] case class StableClusterConfiguration(sequenceNumber: Long, 
  *  - Any member from either configuration may serve as Leader
  *  - Agreement (for elections and entry commitment) requires majoritis from ''both'' old and new configurations
  */
-private[inflatable] case class JointConsensusClusterConfiguration(sequenceNumber: Long, oldMembers: Set[ActorRef], newMembers: Set[ActorRef]) extends ClusterConfiguration {
+private[inflatable] case class JointConsensusClusterConfiguration(sequenceNumber: Long, oldMembers: Set[ActorRef], newMembers: Set[ActorRef], singleNodeCluster: Boolean) extends ClusterConfiguration {
 
   /** Members from both configurations participate in the joint consensus phase */
   val members = oldMembers union newMembers
@@ -85,7 +87,7 @@ private[inflatable] case class JointConsensusClusterConfiguration(sequenceNumber
   /** When in the middle of a configuration migration we may need to know if we're part of the new config (in order to step down if not) */
   def isPartOfNewConfiguration(member: ActorRef): Boolean = newMembers contains member
 
-  def transitionToStable = StableClusterConfiguration(sequenceNumber + 1, newMembers)
+  def transitionToStable = StableClusterConfiguration(sequenceNumber + 1, newMembers, singleNodeCluster)
 
   override def toString =
     s"JointConsensusRaftConfiguration(old:${oldMembers.map(_.path.elements.last)}, new:${newMembers.map(_.path.elements.last)})"

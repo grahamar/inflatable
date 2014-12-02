@@ -6,6 +6,7 @@ import com.amazonaws.services.ec2.AmazonEC2Client
 import com.typesafe.config.{Config, ConfigValueFactory, ConfigFactory}
 import org.slf4j.LoggerFactory
 import scala.collection.JavaConversions._
+import scala.util.Try
 
 private[inflatable] object AkkaConfig {
 
@@ -42,7 +43,7 @@ private[inflatable] class AkkaConfig(defaults: Config) {
 
   private lazy val logger = LoggerFactory.getLogger(getClass)
 
-  private val local = defaults.getBoolean("inflatable.local")
+  private val local = Try(defaults.getBoolean("inflatable.local")).getOrElse(false)
   private val defaultPort = defaults.getString("akka.port")
 
   private lazy val ec2 = {
@@ -76,6 +77,8 @@ private[inflatable] class AkkaConfig(defaults: Config) {
       .withValue("akka.remote.netty.tcp.hostname", ConfigValueFactory.fromAnyRef(host))
       .withValue("akka.remote.netty.tcp.port", ConfigValueFactory.fromAnyRef(port))
       .withValue("akka.cluster.seed-nodes", ConfigValueFactory.fromIterable(seeds))
+
+  val singleNodeCluster = Try(defaults.getBoolean("inflatable.single-node-cluster")).getOrElse(false)
 
   val config = overrideConfig.withFallback(defaults)
 }

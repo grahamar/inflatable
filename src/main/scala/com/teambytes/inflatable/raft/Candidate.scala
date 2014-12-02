@@ -26,7 +26,12 @@ private[raft] trait Candidate {
         log.info("Initializing election (among {} nodes) for {}", m.config.members.size, m.currentTerm)
 
         val request = RequestVote(m.currentTerm, m.clusterSelf, replicatedLog.lastTerm, replicatedLog.lastIndex)
-        m.membersExceptSelf foreach { _ ! request }
+
+        if(m.config.singleNodeCluster && m.config.members.size == 1){
+          m.members foreach { _ ! request }
+        } else {
+          m.membersExceptSelf foreach { _ ! request }
+        }
 
         val includingThisVote = m.incVote
         stay() using includingThisVote.withVoteFor(m.currentTerm, m.clusterSelf)

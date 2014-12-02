@@ -55,7 +55,7 @@ private[protocol] trait StateMetadata extends Serializable {
   }
 
   object Meta {
-    def initial(implicit self: ActorRef) = new Meta(self, Term(0), ClusterConfiguration(), Map.empty)
+    def initial(implicit self: ActorRef) = new Meta(self, Term(0), ClusterConfiguration(isLocal = false), Map.empty)
   }
 
   case class ElectionMeta(

@@ -49,7 +49,7 @@ class Inflatable(handler: InflatableLeader, akkaConfig: AkkaConfig)(implicit ec:
   memberFutures.map { members =>
     logger.info("Inflatable raft system fully inflated!")
 
-    val clusterConfiguration = ClusterConfiguration(members: _*)
+    val clusterConfiguration = ClusterConfiguration(akkaConfig.singleNodeCluster, members: _*)
 
     inflatableCluster ! ChangeConfiguration(clusterConfiguration)
   }

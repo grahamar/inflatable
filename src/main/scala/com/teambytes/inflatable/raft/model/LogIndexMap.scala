@@ -53,10 +53,10 @@ private[inflatable] case class LogIndexMap private (private var backing: Map[Act
   }
 
   def consensusForIndex(config: ClusterConfiguration): Int = config match {
-    case StableClusterConfiguration(_, members) =>
+    case StableClusterConfiguration(_, members, _) =>
       indexOnMajority(members)
 
-    case JointConsensusClusterConfiguration(_, oldMembers, newMembers) =>
+    case JointConsensusClusterConfiguration(_, oldMembers, newMembers, _) =>
       // during joined consensus, in order to commit a value, consensus must be achieved on BOTH member sets.
       // this guarantees safety once we switch to the new configuration, and oldMembers go away. More details in §6.
       val oldQuorum = indexOnMajority(oldMembers)

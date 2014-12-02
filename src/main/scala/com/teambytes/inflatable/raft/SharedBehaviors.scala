@@ -40,7 +40,7 @@ private[inflatable] trait SharedBehaviors {
     case Event(added: RaftMemberAdded, m: Meta) =>
       val newMembers = m.members + added.member
 
-      val initialConfig = ClusterConfiguration(newMembers)
+      val initialConfig = ClusterConfiguration(m.config.singleNodeCluster, newMembers)
 
       if (added.keepInitUntil <= newMembers.size) {
         log.info("Discovered the required min. of {} raft cluster members, becoming Follower.", added.keepInitUntil)
@@ -54,7 +54,7 @@ private[inflatable] trait SharedBehaviors {
     case Event(removed: RaftMemberRemoved, m: Meta) =>
       val newMembers = m.config.members - removed.member
 
-      val waitingConfig = ClusterConfiguration(newMembers)
+      val waitingConfig = ClusterConfiguration(m.config.singleNodeCluster, newMembers)
 
       // keep waiting for others to be discovered
       log.debug("Removed one member, until now discovered {} raft cluster members, still waiting in Init until {} discovered.", newMembers.size, removed.keepInitUntil)

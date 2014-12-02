@@ -13,6 +13,7 @@ Settings
 Settings read from `application.conf` at the root of the classpath, or as JVM run parameters.
 - akka.port - The port to look for akka-cluster instances on.
 - inflatable.local - `true` to run locally and bypass AWS discovery.
+- inflatable.single-node-cluster - `true` to set leader even if only local node is available
 - aws.credentials - `access-key` & `secret-key` to pass to the AWS client for EC2 instance discovery
 
 License
