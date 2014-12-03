@@ -15,7 +15,6 @@ private[inflatable] class InflatableActor(handler: InflatableLeader) extends Raf
 
   override def onIsLeader() = handler.onIsLeader()
 
-
   override def onIsNotLeader() = handler.onIsNotLeader()
 
 }

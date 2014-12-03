@@ -60,10 +60,9 @@ private[inflatable] class AkkaConfig(defaults: Config) {
   private val (host, siblings, port) = {
     if (local) {
       logger.info("Running with local configuration")
-      val localHost = defaults.getString("akka.remote.netty.tcp.hostname")
       val nodes = defaults.getStringList("akka.cluster.seed-nodes").asScala
       val localPort = defaults.getString("akka.remote.netty.tcp.port")
-      (localHost, nodes, localPort)
+      ("localhost", nodes, localPort)
     } else {
       logger.info("Using EC2 autoscaling configuration")
       (ec2.currentIp, ec2.siblingIps, defaultPort)

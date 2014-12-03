@@ -13,7 +13,7 @@ private[inflatable] class EC2(scaling: AmazonAutoScalingClient, ec2: AmazonEC2Cl
   def siblingIps: List[String] = groupInstanceIds(groupName(instanceId)).map(instanceFromId).collect {
     case instance if isRunning(instance) =>
       instance.getPrivateIpAddress
-  }.filterNot(_ == currentIp)
+  }
 
   def currentIp = instanceFromId(instanceId).getPrivateIpAddress
 

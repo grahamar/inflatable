@@ -76,6 +76,7 @@ private[inflatable] abstract class RaftActor extends Actor with LoggingFSM[RaftS
       onIsLeader()
 
     case _ -> Follower =>
+      log.info("* -> Follower, resetting election deadline...")
       resetElectionDeadline()
   }
 

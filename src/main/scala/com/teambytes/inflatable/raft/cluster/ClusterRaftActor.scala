@@ -34,6 +34,8 @@ private[inflatable] class ClusterRaftActor(raftActor: ActorRef, keepInitUntilFou
 
   val identifyTimeout = raftConfig.clusterAutoDiscoveryIdentifyTimeout
 
+  private var members = Set.empty[Member]
+
   /**
    * Used to keep track if we still need to retry sending Identify to an address.
    * If node is not here, it has responsed with at least one ActorIdentity.
@@ -63,8 +65,9 @@ private[inflatable] class ClusterRaftActor(raftActor: ActorRef, keepInitUntilFou
 
     // members joining
     case MemberUp(member) if isRaftNode(member) =>
-        log.info("Node is Up: {}, selecting and adding actors to Raft cluster..", member.address)
-        tryIdentifyRaftMembers(member.address, RaftMembersIdentifyTimedOut(member.address, raftConfig.clusterAutoDiscoveryRetryCount))
+      log.info("Node is Up: {}, selecting and adding actors to Raft cluster..", member.address)
+      tryIdentifyRaftMembers(member.address, RaftMembersIdentifyTimedOut(member.address, raftConfig.clusterAutoDiscoveryRetryCount))
+      members += member
 
     case MemberUp(member) =>
       log.debug("Another node joined, but it's does not have a [{}] role, ignoring it.", raftGroupRole)
@@ -106,7 +109,9 @@ private[inflatable] class ClusterRaftActor(raftActor: ActorRef, keepInitUntilFou
 
     case MemberRemoved(member, previousStatus) =>
       log.info("Member is Removed: {} after {}", member.address, previousStatus)
-      // todo remove from raft ???
+      context.system.actorSelection(raftMembersPath(member.address)).resolveOne(5.seconds).map { removedMember =>
+        raftActor ! RaftMemberRemoved(removedMember, 0)
+      }
 
     case _: MemberEvent =>
       // ignore
