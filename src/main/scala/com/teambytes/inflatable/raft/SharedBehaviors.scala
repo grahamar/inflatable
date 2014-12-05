@@ -96,21 +96,13 @@ private[inflatable] trait SharedBehaviors {
 
       stay()
 
-    case Event(removed: RaftMemberRemoved, m: Meta) =>
-      val newMembers = m.config.members - removed.member
-      val newConfig = ClusterConfiguration(m.config.singleNodeCluster, newMembers)
-
-      log.debug("Removed one member, {} raft cluster members left.", newMembers.size)
-
-      goto(Follower) using m.copy(config = newConfig)
-
-    case Event(added: RaftMemberAdded, m: Meta) =>
-      val newMembers = m.members + added.member
-      val newConfig = ClusterConfiguration(m.config.singleNodeCluster, newMembers)
-
-      log.debug("Added one member, {} raft cluster members.", newMembers.size)
-
-      stay() using m.copy(config = newConfig)
+//    case Event(removed: RaftMemberRemoved, m: Meta) =>
+//      val newMembers = m.config.members - removed.member
+//      val newConfig = ClusterConfiguration(m.config.singleNodeCluster, newMembers)
+//
+//      log.debug("Removed one member, {} raft cluster members left.", newMembers.size)
+//
+//      beginElection(m.copy(config = newConfig))
 
   }
 

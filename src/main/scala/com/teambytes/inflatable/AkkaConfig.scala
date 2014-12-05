@@ -85,11 +85,12 @@ private[inflatable] class AkkaConfig(defaults: Config) {
       .withValue("akka.remote.netty.tcp.hostname", ConfigValueFactory.fromAnyRef(host))
       .withValue("akka.remote.netty.tcp.port", ConfigValueFactory.fromAnyRef(port))
       .withValue("akka.cluster.seed-nodes", ConfigValueFactory.fromIterable(seeds.asJava))
+      .withValue("akka.cluster.min-nr-of-members", ConfigValueFactory.fromAnyRef(seeds.size))
 
   val singleNodeCluster = Try(defaults.getBoolean("inflatable.single-node-cluster")).getOrElse(false)
 
   val config = {
-    if(local) defaults else overrideConfig.withFallback(defaults)
+    if(local) defaults.withValue("akka.cluster.min-nr-of-members", ConfigValueFactory.fromAnyRef(seeds.size)) else overrideConfig.withFallback(defaults)
   }
 
 }

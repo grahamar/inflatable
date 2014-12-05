@@ -1,14 +1,11 @@
 package com.teambytes.inflatable
 
 import akka.actor.{ActorSystem, Props}
-import akka.cluster.Cluster
-import com.teambytes.inflatable.raft.ClusterConfiguration
 import com.teambytes.inflatable.raft.cluster.ClusterRaftActor
-import com.teambytes.inflatable.raft.protocol._
 import com.typesafe.config.Config
 import org.slf4j.LoggerFactory
 
-import scala.concurrent.{Future, ExecutionContext}
+import scala.concurrent.ExecutionContext
 
 object Inflatable {
 
@@ -22,8 +19,6 @@ object Inflatable {
 
 class Inflatable(handler: InflatableLeader, akkaConfig: AkkaConfig)(implicit ec: ExecutionContext) {
 
-  import scala.concurrent.duration._
-
   private val logger = LoggerFactory.getLogger(classOf[Inflatable])
 
   logger.info("Inflating raft system...")
@@ -31,22 +26,9 @@ class Inflatable(handler: InflatableLeader, akkaConfig: AkkaConfig)(implicit ec:
 
   private val clusterSystem = ActorSystem("inflatable-raft", akkaConfig.config)
 
-  private val inflatableActor = clusterSystem.actorOf(
-    Props(
-      classOf[InflatableActor],
-      handler
-    ),
-    name = s"raft-member-0"
-  )
+  private val inflatableActor = clusterSystem.actorOf(Props(classOf[InflatableActor], handler), name = s"inflatable-raft-0")
 
-  clusterSystem.actorOf(
-    Props(
-      classOf[ClusterRaftActor],
-      inflatableActor,
-      akkaConfig.seeds.size
-    ),
-    name = "inflatable-raft-cluster-actor"
-  )
+  clusterSystem.actorOf(ClusterRaftActor.props(inflatableActor, akkaConfig.seeds.size), s"raft-member-0")
 
   logger.info("Inflatable raft system fully inflated!")
 

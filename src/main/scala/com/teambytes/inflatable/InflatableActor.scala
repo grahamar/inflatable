@@ -2,10 +2,11 @@ package com.teambytes.inflatable
 
 import akka.actor.ActorLogging
 import com.teambytes.inflatable.raft.RaftActor
-import org.slf4j.LoggerFactory
+
+private[inflatable] case object JoinCluster
 
 private[inflatable] class InflatableActor(handler: InflatableLeader) extends RaftActor with ActorLogging {
-  import protocol._
+  import com.teambytes.inflatable.protocol._
 
   private[inflatable] override type Command = Cmnd
 

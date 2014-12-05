@@ -12,3 +12,5 @@ addSbtPlugin("com.github.mpeltonen" % "sbt-idea" % "1.6.0")
 addSbtPlugin("com.jsuereth" % "sbt-pgp" % "1.0.0")
 
 addSbtPlugin("com.github.gseitz" % "sbt-release" % "0.8")
+
+addSbtPlugin("com.typesafe.sbt" % "sbt-multi-jvm" % "0.3.8")
