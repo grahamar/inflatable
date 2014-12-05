@@ -110,7 +110,7 @@ private[raft] trait Leader {
   }
 
   def replicateLog(m: LeaderMeta) {
-    m.membersExceptSelf.foreach { member =>
+    m.membersExceptSelf(self).foreach { member =>
       // todo remove me
       //log.info("sending: {} to {}", AppendEntries(m.currentTerm, replicatedLog, fromIndex = nextIndex.valueFor(member), leaderCommitId = replicatedLog.committedIndex), member)
 

@@ -32,7 +32,7 @@ private[raft] trait Candidate {
           self ! VoteCandidate(m.currentTerm)
           stay() using m.withVoteFor(request.term, self)
         } else {
-          m.membersExceptSelf.foreach(_ ! request)
+          m.membersExceptSelf(self).foreach(_ ! request)
 
           val includingThisVote = m.incVote
           stay() using includingThisVote.withVoteFor(m.currentTerm, m.clusterSelf)
