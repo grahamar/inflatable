@@ -67,10 +67,12 @@ private[inflatable] abstract class RaftActor extends Actor with LoggingFSM[RaftS
       resetElectionDeadline()
 
     case Follower -> Candidate =>
+      log.info("Follower -> Candidate")
       self ! BeginElection
       resetElectionDeadline()
 
     case Candidate -> Leader =>
+      log.info("Candidate -> Leader")
       self ! ElectedAsLeader
       cancelElectionDeadline()
       onIsLeader()
@@ -99,7 +101,7 @@ private[inflatable] abstract class RaftActor extends Actor with LoggingFSM[RaftS
     electionDeadline = nextElectionDeadline()
     log.debug("Resetting election timeout: {}", electionDeadline)
 
-    setTimer(ElectionTimeoutTimerName, ElectionTimeout, electionDeadline.timeLeft, repeat = false)
+    setTimer(ElectionTimeoutTimerName, ElectionTimeout, electionDeadline.timeLeft, repeat = true)
 
     electionDeadline
   }
@@ -122,6 +124,7 @@ private[inflatable] abstract class RaftActor extends Actor with LoggingFSM[RaftS
       // cluster is still discovering nodes, keep waiting
       goto(Follower) using m
     } else {
+      log.info("We have at least 1 member, going to candidate!")
       goto(Candidate) using m.forNewElection forMax nextElectionDeadline().timeLeft
     }
   }

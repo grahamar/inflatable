@@ -24,6 +24,7 @@ private[raft] trait Candidate {
         goto(Follower) using m.forFollower
       } else {
         log.info("Initializing election (among {} nodes) for {}", m.config.members.size, m.currentTerm)
+        log.info(s"Nodes: ${m.config.members.map(_.path).mkString(",")}")
 
         val request = RequestVote(m.currentTerm, m.clusterSelf, replicatedLog.lastTerm, replicatedLog.lastIndex)
 
@@ -32,18 +33,25 @@ private[raft] trait Candidate {
           self ! VoteCandidate(m.currentTerm)
           stay() using m.withVoteFor(request.term, self)
         } else {
+          log.info(s"Election started in ${m.currentTerm}, asking ${m.membersExceptSelf(self).size} for votes.")
+          log.info(s"Self: ${self.path}, ClusterSelf: ${m.clusterSelf.path} - Others [${m.membersExceptSelf(self).map(_.path).mkString(",")}}]")
+
           m.membersExceptSelf(self).foreach(_ ! request)
 
           val includingThisVote = m.incVote
+          log.info(s"Voting for ${m.clusterSelf}")
           stay() using includingThisVote.withVoteFor(m.currentTerm, m.clusterSelf)
         }
       }
 
     case Event(msg: RequestVote, m: ElectionMeta) if m.canVoteIn(msg.term) =>
+      log.info(s"Got a vote request from ${sender().path} in ${m.currentTerm}, voting...")
       sender ! VoteCandidate(m.currentTerm)
       stay() using m.withVoteFor(msg.term, candidate())
 
     case Event(msg: RequestVote, m: ElectionMeta) =>
+      log.info(s"Not able to vote because: Term: ${msg.term} is >= to ${m.currentTerm} or votes [${m.votes}] for requested term is not empty")
+      log.info(s"Got a vote request from ${sender().path} in ${m.currentTerm}, unable to vote, declining.")
       sender ! DeclineCandidate(msg.term)
       stay()
 
@@ -52,6 +60,7 @@ private[raft] trait Candidate {
 
       if (includingThisVote.hasMajority) {
         log.info("Received vote by {}; Won election with {} of {} votes", voter(), includingThisVote.votesReceived, m.config.members.size)
+        log.info(s"Votes: ${includingThisVote.votes}")
         goto(Leader) using m.forLeader
       } else {
         log.info("Received vote by {}; Have {} of {} votes", voter(), includingThisVote.votesReceived, m.config.members.size)
@@ -59,7 +68,7 @@ private[raft] trait Candidate {
       }
 
     case Event(DeclineCandidate(term), m: ElectionMeta) =>
-      log.info("Rejected vote by {}, in term {}", voter(), term)
+      log.info("{} declined to vote for me, in term {}", voter(), term)
       stay()
 
     // end of election
@@ -73,6 +82,7 @@ private[raft] trait Candidate {
         m.clusterSelf forward append
         goto(Follower) using m.forFollower
       } else {
+        log.info("Leader isn't ahead, being stubborn!")
         stay()
       }
 

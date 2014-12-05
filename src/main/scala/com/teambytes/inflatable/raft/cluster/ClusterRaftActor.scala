@@ -1,7 +1,7 @@
 package com.teambytes.inflatable.raft.cluster
 
 import protocol._
-import akka.cluster.{Member, Cluster}
+import akka.cluster.{ClusterEvent, Member, Cluster}
 import akka.cluster.ClusterEvent._
 import concurrent.duration._
 import com.teambytes.inflatable.raft.config.{RaftConfig, RaftConfiguration}
@@ -52,7 +52,7 @@ private[inflatable] class ClusterRaftActor(raftActor: ActorRef, keepInitUntilFou
     // tell the raft actor, that this one is it's "outside world representative"
     raftActor ! AssignClusterSelf(self)
 
-    cluster.subscribe(self, initialStateMode = InitialStateAsEvents, classOf[MemberEvent], classOf[UnreachableMember])
+    cluster.subscribe(self, ClusterEvent.initialStateAsEvents, classOf[MemberEvent], classOf[UnreachableMember])
   }
 
   override def postStop(): Unit = {
@@ -62,6 +62,9 @@ private[inflatable] class ClusterRaftActor(raftActor: ActorRef, keepInitUntilFou
   }
 
   def receive = {
+
+    case state: CurrentClusterState =>
+      log.info(s"Current State: $state, Current Members: [${state.members.filter(isRaftNode)}}]")
 
     // members joining
     case MemberUp(member) if isRaftNode(member) =>

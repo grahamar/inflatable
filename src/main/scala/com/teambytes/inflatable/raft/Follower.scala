@@ -44,8 +44,10 @@ private[raft] trait Follower {
 
     // timeout, may need to start an election
     case Event(ElectionTimeout, m: Meta) =>
-      if (electionDeadline.isOverdue()) beginElection(m)
-      else stay()
+      if (electionDeadline.isOverdue()) {
+        log.info("An election is overdue! start the election!!")
+        beginElection(m)
+      } else stay()
 
     case Event(AskForState, _) =>
       sender() ! IAmInState(Follower)
