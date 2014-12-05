@@ -25,7 +25,7 @@ private[protocol] trait StateMetadata extends Serializable {
     def isConfigTransitionInProgress = config.isTransitioning
 
     /** Since I'm the Leader "everyone but myself" */
-    def membersExceptSelf(slf: ActorRef) = config.members.filterNot { mem => mem == clusterSelf || mem == slf }
+    def membersExceptSelf(slf: ActorRef) = config.members.filterNot { mem => mem == clusterSelf }// || mem == slf }
 
     def members = config.members
 

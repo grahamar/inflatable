@@ -79,6 +79,8 @@ private[inflatable] trait SharedBehaviors {
       val configChangeWouldBeNoop =
         transitioningConfig.transitionToStable.members == m.config.members
 
+      log.info(s"Change Config. Current members: ${m.config.members.size}, New members: ${transitioningConfig.transitionToStable.members.size}")
+
       if (configChangeWouldBeNoop) {
         // no transition needed, the configuration change message was out of date
       } else {
@@ -95,14 +97,6 @@ private[inflatable] trait SharedBehaviors {
       }
 
       stay()
-
-//    case Event(removed: RaftMemberRemoved, m: Meta) =>
-//      val newMembers = m.config.members - removed.member
-//      val newConfig = ClusterConfiguration(m.config.singleNodeCluster, newMembers)
-//
-//      log.debug("Removed one member, {} raft cluster members left.", newMembers.size)
-//
-//      beginElection(m.copy(config = newConfig))
 
   }
 
